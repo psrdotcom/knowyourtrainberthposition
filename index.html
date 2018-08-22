@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" manifest="cache.manifest">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Berth/Seat Position</title>
+	<link rel="stylesheet" href="styles/jquery.mobile-1.4.5.min.css" />
+	<script src="scripts/jquery-2.1.3.min.js"></script>
+	<script src="scripts/jquery.mobile-1.4.5.min.js"></script>
+	<script>
+		var selected_class = null;
+		var berthno = null;
+		var displayText = "";
+		var MIN_SEAT_NUM = 1, MAX_2ND_LIMIT = 46, MAX_3RD_LIMIT = 64, MAX_GR_LIMIT = 81, MAX_SL_LIMIT = 72, MAX_2S_LIMIT = 108, MAX_2SJ_LIMIT = 106;
+		var MOD_2ND = 6, MOD_3RD = 8, MOD_GR = 9, MOD_SL = 8;
+		var AS = "Asile Seat", LB = "Lower Berth", MB = "Middle Berth", MS = "Middle Seat", 
+				UB = "Upper Berth", SLB = "Side Lower Berth", SMB = "Side Middle Berth", 
+				SUB = "Side Upper Berth", WS = "Window Seat";
+
+		var ERROR_MSG1 = "Please enter valid berth/seat number in between ";
+		var ERROR_MSG2 = " and ";
+
+		var INFO_MSG1 = "For the number ";
+		var INFO_MSG2 = ", you have got <b>";
+		var INFO_MSG3 = " </b>";
+
+	</script>
+</head>
+
+<body>
+	<div data-role="page" id="one" data-theme="b">
+		<div data-role="header">
+			<h1><marquee behavior="scroll" direction="left" scrollamount="2" width="100%">Train Berth/Seat Position</marquee></h1>
+			<a href="about.html" rel="external" id="about" data-role="button" data-icon="grid" data-direction="reverse">About</a>
+			<a href="#" id="close" data-role="button" data-icon="delete" data-iconpos="right">Close</a>
+		</div>
+
+		<div data-role="content" id="contentMain" name="contentMain">
+			<form id="form_input" name="form_input">
+				<div>
+					<label for="select-choice-1" class="select">Select Train Class</label>
+					<select name="trainclass" id="trainclass">
+						<option value="2">II-Tier AC</option>
+						<option value="3">III-Tier AC</option>
+						<option value="4">Garib Rath</option>
+						<option value="5" selected="selected">Sleeper Class</option>
+						<option value="6">Second Seating</option>
+						<option value="7">Second Seating - JanShatabdi</option>
+					</select>
+				</div>
+				<div>
+					<label>Enter Train Berth/Seat Number</label>
+					<input id="berthnum" name="berthnum" type="number" size="5" autofocus="autofocus" title="Enter Only Numbers" required="required"
+					 data-clear-btn="true" type="search" />
+				</div>
+				<div>
+					<a id="submit" name="submit" data-theme="b" href="#popup1" data-rel="dialog" data-role="button" data-icon="check" data-iconpos="right">Submit</a>
+				</div>
+			</form>
+		</div>
+		<!--contentMain-->
+
+		<script>
+
+			$(document)
+				.ready(
+					function () {
+						$("#submit")
+							.bind(
+								"click",
+								function (event, ui) {
+									selected_class = $('#trainclass').val();
+									berthno = $('#berthnum')
+										.val();
+
+									// call calculate berth function
+									var displayText = calculateBerth(selected_class, berthno);
+
+									// Clearing the entered value in textbox and setting focus to it
+									$('#berthnum').val('')
+										.focus();
+
+									$("#popupMsg")
+										.html(
+											"<center>"
+											+ displayText
+											+ "</center>");
+									$.mobile
+										.changePage(
+											'#popup1',
+											{
+												transition: "pop",
+												reverse: false
+											});
+								});
+
+						// Closing app by calling Android Activity exipApp function
+						$("#close").bind("click", function (event, ui) {
+							window.close();
+						});
+					});
+
+			function calculateBerth(selected_class, berthno) {
+				var seatNo = -1;
+
+				switch (selected_class) {
+					case "2":
+						if (berthno == 45 || berthno == 46) {
+							return secondAc(berthno);
+						} else {
+							return secondAc(checkClassSeat(berthno, MAX_2ND_LIMIT, MOD_2ND));
+						}
+					case "3":
+						return thirdAc(checkClassSeat(berthno, MAX_3RD_LIMIT, MOD_3RD));
+					case "4":
+						return garibRath(checkClassSeat(berthno, MAX_GR_LIMIT, MOD_GR));
+					case "5":
+						return sleeperClass(checkClassSeat(berthno, MAX_SL_LIMIT, MOD_SL));
+					case "6":
+						return secondSeating(checkClassSeat(berthno, MAX_2S_LIMIT, MOD_2ND));
+					case "7":
+						if (berthno > 0 && berthno < 5) {
+							if (berthno == 4) {
+								seatNo = berthno + 1;
+							} else {
+								seatNo = berthno;
+							}
+						} else if (berthno > 4 && berthno < 106) {
+							seatNo = berthno - 5;
+						} else if (berthno == 106) {
+							seatNo = MOD_2ND;
+						}
+						return secondSeatingJS(checkClassSeat(seatNo, MAX_2SJ_LIMIT, MOD_2ND));
+				}
+				return false;
+			}
+
+			// Checking Class Seat
+			function checkClassSeat(berthno, limit, modval) {
+				if (berthno >= MIN_SEAT_NUM && berthno <= limit) {
+					return berthno % modval;
+				} else {
+					return -1;
+				}
+			}
+
+			// 2nd AC display function
+			function secondAc(pos) {
+				if (pos == -1) {
+					return errorMsg(MAX_2ND_LIMIT);
+				} else if (pos == 1 || pos == 3) {
+					return infoMsg(berthno, LB);
+				} else if (pos == 2 || pos == 4) {
+					return infoMsg(berthno, UB);
+				} else if (pos == 5) {
+					return infoMsg(berthno, SLB);
+				} else if (pos == 0) {
+					return infoMsg(berthno, SUB);
+				} else if (pos == 45) {
+					return infoMsg(berthno, LB);
+				} else if (pos == 46) {
+					return infoMsg(berthno, UB);
+				}
+			}
+
+			// 3rd AC display function
+			function thirdAc(pos) {
+				if (pos == -1) {
+					return errorMsg(MAX_3RD_LIMIT);
+				} else if (pos == 1 || pos == 4) {
+					return infoMsg(berthno, LB);
+				} else if (pos == 2 || pos == 5) {
+					return infoMsg(berthno, MB);
+				} else if (pos == 3 || pos == 6) {
+					return infoMsg(berthno, UB);
+				} else if (pos == 7) {
+					return infoMsg(berthno, SLB);
+				} else if (pos == 0) {
+					return infoMsg(berthno, SUB);
+				}
+			}
+
+			// Sleeper Class display function
+			function sleeperClass(pos) {
+				if (pos == -1) {
+					return errorMsg(MAX_SL_LIMIT);
+				} else {
+					return thirdAc(pos);
+				}
+			}
+
+			// GaribRath display function
+			function garibRath(pos) {
+				if (pos == -1) {
+					return errorMsg(MAX_GR_LIMIT);
+				} else if (pos == 1 || pos == 4) {
+					return infoMsg(berthno, LB);
+				} else if (pos == 2 || pos == 5) {
+					return infoMsg(berthno, MB);
+				} else if (pos == 3 || pos == 6) {
+					return infoMsg(berthno, UB);
+				} else if (pos == 7) {
+					return infoMsg(berthno, SLB);
+				} else if (pos == 8) {
+					return infoMsg(berthno, SMB);
+				} else if (pos == 0) {
+					return infoMsg(berthno, SUB);
+				}
+			}
+
+			// Second Seating display function
+			function secondSeating(pos) {
+				if (pos == -1) {
+					return errorMsg(MAX_2S_LIMIT);
+				} else if (pos == 0 || pos == 1) {
+					return infoMsg(berthno, WS);
+				} else if (pos == 2 || pos == 5) {
+					return infoMsg(berthno, MS);
+				} else if (pos == 3 || pos == 4) {
+					return infoMsg(berthno, AS);
+				}
+			}
+
+			// Second seating JanShatabdi function
+			function secondSeatingJS(pos) {
+				if (pos == -1) {
+					return errorMsg(MAX_2SJ_LIMIT);
+				} else {
+					return secondSeating(pos);
+				}
+			}
+
+			// Error Message with Min and Max Seat numbers
+			function errorMsg(maxSeatNo) {
+				return ERROR_MSG1 + MIN_SEAT_NUM + ERROR_MSG2 + maxSeatNo;
+			}
+
+			// Info msg
+			function infoMsg(berthno, pos) {
+				return INFO_MSG1 + berthno + INFO_MSG2 + pos + INFO_MSG3;
+			}
+
+		</script>
+
+	</div>
+	<!--one page ends here-->
+
+	<div data-role="page" id="popup1" data-theme="b">
+		<div data-role="header" data-theme="e">
+			<h1>Berth/Seat Details</h1>
+		</div>
+		<!-- /header -->
+
+		<div data-role="content" data-theme="d">
+			<h2>Berth/Seat Position</h2>
+			<p id="popupMsg"></p>
+			<p>
+				<a href="#one" data-rel="back" data-role="button" data-inline="true" data-icon="back">Back</a>
+			</p>
+		</div>
+		<!-- /content -->
+	</div>
+	<!--popup page-->
+
+</body>
+
+</html>
